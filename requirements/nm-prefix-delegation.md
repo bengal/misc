@@ -148,6 +148,10 @@ multiple things together:
 Features currently missing are:
 
  - announce a static prefix via router advertisement
+
+ - announce custom DNS and domains via RA
+
+ - select the subnet id to distribute from the PD
  
  - tweak the parameters of router advertisements:
    - min/max interval between RAs
@@ -157,6 +161,29 @@ Features currently missing are:
  - control forwarding independently of shared mode
 
 ### New properties
+
+Similarly to what systemd does, we introduce 2 new
+settings.
+
+`prefix-delegation` configures when to request PD on other interfaces
+and what to do with it. Properties:
+
+ - `enable {yes,no*}`:
+    If enabled, the PD will be requested on a different interface
+    having `ipv6.dhcp-request-prefix=auto|yes`. The prefix will also
+    be announced via RA if it's enabled.
+ - `subnet-id NUM`
+    Specifies the subnet id to assign to this interface.
+ - `assign {yes*,no}`
+    Whether to assign an address from the selected prefix to the
+    current interface.
+
+The reason why this is a separate setting and it's not folded into
+`router-advertisement` is that one may want to configure an interface
+according to a prefix without actually advertising it via NM (and for
+example, advertise it through external mechanism).
+
+`router-advertisement` configures when to start RA and its parameters:
 
  - `router-advertisement.enable = {yes,no*}`
 
@@ -176,12 +203,6 @@ Features currently missing are:
     - `valid-lft NUM`
     - `preferred-lft NUM`
 
- - `router-advertisement.use-pd = {yes*,no}`
-
-    If enabled, the prefix learned via PD on a different interface
-    will be advertised. All the interfaces with
-    `ipv6.dhcp-request-prefix=auto|yes` will be used.
-
  - `router-advertimement.min-interval = NUM`
    `router-advertisement.max-interval = NUM`
 
@@ -194,6 +215,18 @@ Features currently missing are:
  - `router-advertisement.ra-mtu = NUM`
 
     The MTU to advertise.
+
+ - `router-advertisement.dns = ADDR,...`
+
+    A list of static DNS servers to advertise.
+
+ - `router-advertisement.dns-domains = STR,...`
+
+    A list of static DNS domains to advertise.
+
+ - `router-advertisement.auto-dns = {yes*,no}`
+
+    Whether to take the DNS and domains from the upstream interface.
 
  - `ipv4.forwarding = {ignore*,yes,no}`
  - `ipv6.forwarding = {ignore*,yes,no}`
@@ -209,7 +242,6 @@ Features currently missing are:
    ipv6.forwarding=yes
    router-advertisement.enabled=yes
    router-advertisement.prefixes="2001:db8:0:1::4/64 on-link=yes valid-lft=600 preferred-lft=300"
-   router-advertisement.use-pd=no
    router-advertisement.max-interval=30
    router-advertisement.ra-flags=otherconf
 ```
@@ -218,6 +250,8 @@ Features currently missing are:
 ```
    ipv6.method=link-local          # or =shared
    ipv6.forwarding=yes
+   prefix-delegation.enable=yes
+   prefix-delegation.subnet-id=4
    router-advertisement.enabled=yes
    router-advertisement.use-pd=yes
    router-advertisement.max-interval=30
